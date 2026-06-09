@@ -88,7 +88,7 @@ cd clinical-research-pipeline-suite
 pip install -r requirements.txt
 
 # Run the CGM processor demo
-python notebooks/demo_playbook1.ipynb
+jupyter notebook notebooks/demo_playbook1.ipynb
 
 # Run unit tests
 pytest python/tests/ -v --cov=python/src
