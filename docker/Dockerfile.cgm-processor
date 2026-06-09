@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y     gcc     && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY python/src/ ./src/
+COPY python/playbook1_cgm_meal_tracker.py ./
+
+# Set environment variables
+ENV PYTHONPATH=/app
+
+# Volume for CGM uploads
+VOLUME ["/data/cgm"]
+
+# Run CGM processor
+CMD ["python", "playbook1_cgm_meal_tracker.py"]

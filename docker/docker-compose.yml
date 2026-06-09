@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: research_db
+      POSTGRES_USER: researcher
+    volumes:
+      - tsdb_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U researcher -d research_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redcap-etl:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.etl
+    environment:
+      - REDCAP_URI=${REDCAP_URI}
+      - REDCAP_API_TOKEN=${REDCAP_API_TOKEN}
+      - WAREHOUSE_URI=postgresql://researcher:${POSTGRES_PASSWORD}@timescaledb:5432/research_db
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cgm-processor:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cgm-processor
+    environment:
+      - WAREHOUSE_URI=postgresql://researcher:${POSTGRES_PASSWORD}@timescaledb:5432/research_db
+    volumes:
+      - ./cgm_uploads:/data/cgm
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    environment:
+      - WAREHOUSE_URI=postgresql://researcher:${POSTGRES_PASSWORD}@timescaledb:5432/research_db
+    ports:
+      - "8050:8050"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redcap-etl:
+        condition: service_started
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    restart: unless-stopped
+
+volumes:
+  tsdb_data:
+  grafana_data:
