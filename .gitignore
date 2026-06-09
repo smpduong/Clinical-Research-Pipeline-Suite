@@ -1,0 +1,170 @@
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+env.bak/
+venv.bak/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ============================================
+# R
+# ============================================
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+.renv/
+renv/library/
+renv/local/
+renv/cellar/
+renv/lock/
+renv/python/
+renv/sandbox/
+renv/staging/
+
+# RStudio
+.Ruserdata
+
+# ============================================
+# Data (CRITICAL for clinical research)
+# ============================================
+# NEVER commit real patient data
+data/raw/
+data/processed/
+data/private/
+data/phi/
+data/hipaa/
+*.csv.gz
+*.parquet
+*.feather
+*.xlsx
+*.xls
+*.sav
+*.dta
+*.sas7bdat
+
+# Keep only synthetic/sample data
+# (Uncomment if you want to ignore ALL data)
+# data/
+
+# ============================================
+# Secrets & Config (HIPAA compliance)
+# ============================================
+.env
+*.env
+.env.*
+!.env.example
+config/secrets.yml
+config/secrets.json
+config/credentials.json
+*.pem
+*.key
+secrets/
+credentials/
+tokens/
+.redcap-token
+.api-keys
+
+# ============================================
+# Docker & Infrastructure
+# ============================================
+tsdb_data/
+grafana_data/
+postgres_data/
+pgdata/
+*.pid
+docker-compose.override.yml
+
+# ============================================
+# Logs & Monitoring
+# ============================================
+*.log
+logs/
+log/
+*.out
+prometheus_data/
+alertmanager/
+
+# ============================================
+# OS & Editor
+# ============================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+
+# ============================================
+# Documentation builds
+# ============================================
+docs/_build/
+site/
+
+# ============================================
+# Large files / Archives
+# ============================================
+*.zip
+*.tar.gz
+*.tar
+*.7z
