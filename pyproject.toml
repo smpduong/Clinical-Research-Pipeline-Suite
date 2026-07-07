@@ -1,0 +1,17 @@
+[tool.pytest.ini_options]
+# Make the shared modules in python/src importable as `src.*` when tests are
+# invoked from the repository root (e.g. `pytest python/tests/`).
+pythonpath = ["python"]
+testpaths = ["python/tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["python/src"]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["src"]

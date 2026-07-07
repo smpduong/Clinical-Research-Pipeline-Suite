@@ -123,13 +123,13 @@ clinical-research-pipeline-suite/
 ├── README.md                          # This file
 ├── LICENSE                            # MIT License
 ├── .gitignore                         # Python + R + data ignores
+├── pyproject.toml                     # Pytest / black / isort config
 ├── requirements.txt                   # Python dependencies
-├── requirements-r.txt                 # R packages (optional)
+├── R_INSTALL.md                       # R package installation notes
 │
 ├── docs/                              # Documentation
 │   ├── ARCHITECTURE.md                # System design & data flow
-│   ├── RECRUITER_GUIDE.md             # Skills-to-code mapping
-│   └── INTERVIEW_WALKTHROUGH.md       # Technical deep dive
+│   └── RECRUITER_GUIDE.md             # Skills-to-code mapping
 │
 ├── data/                              # Sample synthetic data
 │   ├── sample_cgm_dexcom.csv          # 30 days of synthetic CGM
@@ -161,10 +161,8 @@ clinical-research-pipeline-suite/
 │   └── tests/
 │       └── test_cgm_processor.R
 │
-├── notebooks/                         # Jupyter/R Markdown demos
-│   ├── demo_playbook1.ipynb           # End-to-end CGM pipeline
-│   ├── demo_playbook2.ipynb           # Quiz analysis & mixed models
-│   └── demo_playbook3.ipynb           # Dashboard & warehouse demo
+├── notebooks/                         # Jupyter demos
+│   └── demo_playbook1.ipynb           # End-to-end CGM + equity pipeline
 │
 └── docker/                            # Deployment configs
     ├── Dockerfile.etl
@@ -179,11 +177,12 @@ clinical-research-pipeline-suite/
 
 | Module | Output | Description |
 |--------|--------|-------------|
+| Playbook 1 | ![CGM Trace](docs/screenshots/pb1_cgm_trace.png) | 30-day glucose trace with target range and distribution |
 | Playbook 1 | ![Cuisine Excursion](docs/screenshots/pb1_cuisine_excursion.png) | Mean glucose spike by cuisine type |
 | Playbook 1 | ![eGL vs Observed](docs/screenshots/pb1_egl_vs_excursion.png) | Prediction accuracy validation |
 | Playbook 2 | ![Knowledge Gain](docs/screenshots/pb2_knowledge_gain.png) | Pre/post educational intervention |
 | Playbook 2 | ![Self-Efficacy](docs/screenshots/pb2_self_efficacy.png) | Confidence change by module |
-| Playbook 3 | ![Dashboard](docs/screenshots/pb3_dashboard.png) | Real-time implementation monitoring |
+| Playbook 3 | ![Equity Analysis](docs/screenshots/pb3_equity_analysis.png) | Outcome disparities by language + curriculum comparison |
 
 ---
 

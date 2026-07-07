@@ -24,7 +24,8 @@ fit_mixed_model <- function(data, formula_str, random_effect) {
 
   if (!convergence_ok) {
     tryCatch({
-      simple_formula <- gsub("\+ \(1 \\|.*\)", "", formula_str)
+      # Drop the random-effects term, e.g. "+ (1 | id)", for the fixed-effects fallback
+      simple_formula <- gsub("\\s*\\+\\s*\\(1\\s*\\|[^)]*\\)", "", formula_str)
       model <- lm(as.formula(simple_formula), data = data)
       message("Using fixed-effects fallback")
     }, error = function(e2) {
