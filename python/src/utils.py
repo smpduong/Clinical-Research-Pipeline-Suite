@@ -2,9 +2,10 @@
 utils.py - Shared utility functions for the Clinical Research Pipeline Suite.
 """
 
+from typing import Dict, List, Optional
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
 
 
 def cohens_d(group1: np.ndarray, group2: np.ndarray) -> float:
@@ -19,8 +20,10 @@ def cohens_d(group1: np.ndarray, group2: np.ndarray) -> float:
         Cohen's d (standardized mean difference)
     """
     n1, n2 = len(group1), len(group2)
-    pooled_std = np.sqrt(((n1 - 1) * np.var(group1, ddof=1) + 
-                          (n2 - 1) * np.var(group2, ddof=1)) / (n1 + n2 - 2))
+    pooled_std = np.sqrt(
+        ((n1 - 1) * np.var(group1, ddof=1) + (n2 - 1) * np.var(group2, ddof=1))
+        / (n1 + n2 - 2)
+    )
     if pooled_std == 0:
         return 0.0
     return (np.mean(group1) - np.mean(group2)) / pooled_std
@@ -39,9 +42,13 @@ def classify_effect_size(d: float) -> str:
         return "large"
 
 
-def wide_to_long(df: pd.DataFrame, id_cols: List[str], 
-                 time_col: str, value_cols: List[str],
-                 time_mapping: Optional[Dict] = None) -> pd.DataFrame:
+def wide_to_long(
+    df: pd.DataFrame,
+    id_cols: List[str],
+    time_col: str,
+    value_cols: List[str],
+    time_mapping: Optional[Dict] = None,
+) -> pd.DataFrame:
     """
     Convert wide-format longitudinal data to long format.
 
@@ -62,6 +69,6 @@ def wide_to_long(df: pd.DataFrame, id_cols: List[str],
                 time_val = time_mapping.get(col, col) if time_mapping else col
                 entry = {id_col: row[id_col] for id_col in id_cols}
                 entry[time_col] = time_val
-                entry['value'] = row[col]
+                entry["value"] = row[col]
                 long_data.append(entry)
     return pd.DataFrame(long_data)

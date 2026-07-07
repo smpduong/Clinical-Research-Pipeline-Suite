@@ -16,48 +16,44 @@ Dependencies: pandas, numpy, matplotlib, seaborn, scipy, python-dotenv
 ================================================================================
 """
 
-import os
-import sys
 import json
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy import stats
 from dotenv import load_dotenv
 
 # Import shared modules
 from src.cgm_processor import UnifiedCGMProcessor
-from src.redcap_client import SecureREDCapClient
-from src.utils import cohens_d, classify_effect_size
 
 load_dotenv()
 
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s'
+    level=logging.INFO, format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 sns.set_style("whitegrid")
-plt.rcParams['figure.figsize'] = (12, 6)
+plt.rcParams["figure.figsize"] = (12, 6)
 
 
 # ==============================================================================
 # P1: Cultural Food Library & Estimated Glycemic Load Engine
 # ==============================================================================
 
+
 @dataclass
 class FoodItem:
     """Nutritional profile for a culturally specific dish."""
+
     name: str
-    gi: float           # Glycemic index (0-100)
+    gi: float  # Glycemic index (0-100)
     carbs_per_serving: float
     cuisine: str
     protein_g: float = 0.0
@@ -106,17 +102,18 @@ FOOD_LIBRARY: Dict[str, Dict[str, FoodItem]] = {
         "tres_leches": FoodItem("Tres Leches", 65, 50, "latinx", 6, 0),
         "churros": FoodItem("Churros", 75, 35, "latinx", 3, 1),
         "pozole": FoodItem("Pozole", 45, 25, "latinx", 18, 3),
-    }
+    },
 }
 
 PORTION_MULTIPLIERS = {"1": 0.5, "2": 1.0, "3": 1.5, "4": 2.0}
-PROTEIN_REDUCTION = 0.85   # 15% reduction in glycemic impact
-FIBER_REDUCTION = 0.90     # 10% reduction in glycemic impact
+PROTEIN_REDUCTION = 0.85  # 15% reduction in glycemic impact
+FIBER_REDUCTION = 0.90  # 10% reduction in glycemic impact
 
 
 @dataclass
 class MealLog:
     """A single meal log entry from a participant."""
+
     participant_id: str
     log_date: datetime
     meal_occasion: str
@@ -133,6 +130,7 @@ class MealLog:
 @dataclass
 class GlycemicMetrics:
     """Computed glycemic metrics for a meal."""
+
     egl: float
     base_carbs: float
     gi: float
@@ -160,7 +158,10 @@ class GlycemicLoadEngine:
         gi = 50.0
 
         # Look up dish in cultural food library
-        if meal.cuisine in self.food_library and meal.dish in self.food_library[meal.cuisine]:
+        if (
+            meal.cuisine in self.food_library
+            and meal.dish in self.food_library[meal.cuisine]
+        ):
             food_item = self.food_library[meal.cuisine][meal.dish]
             base_carbs = food_item.carbs_per_serving
             gi = food_item.gi
@@ -191,15 +192,20 @@ class GlycemicLoadEngine:
                 category = "High"
 
         return GlycemicMetrics(
-            egl=egl, base_carbs=base_carbs, gi=gi,
-            portion_multiplier=portion_mult, modification_factor=mod_factor,
-            glucose_excursion=excursion, excursion_category=category
+            egl=egl,
+            base_carbs=base_carbs,
+            gi=gi,
+            portion_multiplier=portion_mult,
+            modification_factor=mod_factor,
+            glucose_excursion=excursion,
+            excursion_category=category,
         )
 
 
 # ==============================================================================
 # P1: Data Quality Validator
 # ==============================================================================
+
 
 class DataQualityValidator:
     """
@@ -214,18 +220,40 @@ class DataQualityValidator:
 
     def __init__(self):
         self.rules = [
-            {'name': 'cgm_range', 
-             'check': lambda r: 50 <= r.get('cgm_pre', 100) <= 400 if pd.notna(r.get('cgm_pre')) else True,
-             'severity': 'warning', 'message': 'CGM outside 50-400'},
-            {'name': 'future_date', 
-             'check': lambda r: pd.to_datetime(r.get('meal_log_date', '2000-01-01')) <= pd.Timestamp.now(),
-             'severity': 'error', 'message': 'Future date not allowed'},
-            {'name': 'carbs_required', 
-             'check': lambda r: pd.notna(r.get('carbs_manual')) or pd.notna(r.get('dish_selected')),
-             'severity': 'error', 'message': 'Dish or carbs required'},
-            {'name': 'excursion_outlier', 
-             'check': lambda r: abs(r.get('glucose_excursion', 0)) < 150 if pd.notna(r.get('glucose_excursion')) else True,
-             'severity': 'warning', 'message': 'Excursion >150 mg/dL'},
+            {
+                "name": "cgm_range",
+                "check": lambda r: (
+                    50 <= r.get("cgm_pre", 100) <= 400
+                    if pd.notna(r.get("cgm_pre"))
+                    else True
+                ),
+                "severity": "warning",
+                "message": "CGM outside 50-400",
+            },
+            {
+                "name": "future_date",
+                "check": lambda r: pd.to_datetime(r.get("meal_log_date", "2000-01-01"))
+                <= pd.Timestamp.now(),
+                "severity": "error",
+                "message": "Future date not allowed",
+            },
+            {
+                "name": "carbs_required",
+                "check": lambda r: pd.notna(r.get("carbs_manual"))
+                or pd.notna(r.get("dish_selected")),
+                "severity": "error",
+                "message": "Dish or carbs required",
+            },
+            {
+                "name": "excursion_outlier",
+                "check": lambda r: (
+                    abs(r.get("glucose_excursion", 0)) < 150
+                    if pd.notna(r.get("glucose_excursion"))
+                    else True
+                ),
+                "severity": "warning",
+                "message": "Excursion >150 mg/dL",
+            },
         ]
 
     def validate_record(self, record: Dict) -> List[Dict]:
@@ -233,34 +261,44 @@ class DataQualityValidator:
         issues = []
         for rule in self.rules:
             try:
-                if not rule['check'](record):
-                    issues.append({
-                        'rule': rule['name'], 
-                        'severity': rule['severity'],
-                        'message': rule['message'],
-                        'participant_id': record.get('participant_id')
-                    })
+                if not rule["check"](record):
+                    issues.append(
+                        {
+                            "rule": rule["name"],
+                            "severity": rule["severity"],
+                            "message": rule["message"],
+                            "participant_id": record.get("participant_id"),
+                        }
+                    )
             except Exception as e:
-                issues.append({
-                    'rule': rule['name'], 
-                    'severity': 'error',
-                    'message': f'Validation error: {e}',
-                    'participant_id': record.get('participant_id')
-                })
+                issues.append(
+                    {
+                        "rule": rule["name"],
+                        "severity": "error",
+                        "message": f"Validation error: {e}",
+                        "participant_id": record.get("participant_id"),
+                    }
+                )
         return issues
 
     def validate_batch(self, df: pd.DataFrame) -> pd.DataFrame:
         """Validate an entire batch of records."""
         all_issues = []
         # Check for duplicates
-        dupes = df[df.duplicated(subset=['participant_id', 'meal_log_date', 'meal_occasion'], keep=False)]
+        dupes = df[
+            df.duplicated(
+                subset=["participant_id", "meal_log_date", "meal_occasion"], keep=False
+            )
+        ]
         for _, row in dupes.iterrows():
-            all_issues.append({
-                'rule': 'duplicate_meal', 
-                'severity': 'warning',
-                'message': 'Duplicate meal log detected',
-                'participant_id': row['participant_id']
-            })
+            all_issues.append(
+                {
+                    "rule": "duplicate_meal",
+                    "severity": "warning",
+                    "message": "Duplicate meal log detected",
+                    "participant_id": row["participant_id"],
+                }
+            )
         # Check each record
         for _, row in df.iterrows():
             all_issues.extend(self.validate_record(row.to_dict()))
@@ -270,6 +308,7 @@ class DataQualityValidator:
 # ==============================================================================
 # P1: Weekly Report Generator
 # ==============================================================================
+
 
 class WeeklyReportGenerator:
     """
@@ -285,125 +324,242 @@ class WeeklyReportGenerator:
     def __init__(self, engine: GlycemicLoadEngine):
         self.engine = engine
 
-    def generate(self, df: pd.DataFrame, week_start: datetime, 
-                 week_end: datetime, output_dir: str = ".") -> Dict:
+    def generate(
+        self,
+        df: pd.DataFrame,
+        week_start: datetime,
+        week_end: datetime,
+        output_dir: str = ".",
+    ) -> Dict:
         """Generate weekly report with validation."""
-        required_cols = ['meal_log_date', 'cuisine_cat', 'glucose_excursion', 
-                        'egl', 'cgm_pre', 'cgm_post']
+        required_cols = [
+            "meal_log_date",
+            "cuisine_cat",
+            "glucose_excursion",
+            "egl",
+            "cgm_pre",
+            "cgm_post",
+        ]
         missing = [c for c in required_cols if c not in df.columns]
         if missing:
             logger.warning(f"Missing columns: {missing}. Available: {list(df.columns)}")
-            return {'error': f'Missing required columns: {missing}'}
+            return {"error": f"Missing required columns: {missing}"}
 
-        df['meal_log_date'] = pd.to_datetime(df['meal_log_date'])
-        week_df = df[(df['meal_log_date'] >= week_start) & 
-                     (df['meal_log_date'] <= week_end)].copy()
+        df["meal_log_date"] = pd.to_datetime(df["meal_log_date"])
+        week_df = df[
+            (df["meal_log_date"] >= week_start) & (df["meal_log_date"] <= week_end)
+        ].copy()
 
         if len(week_df) == 0:
-            return {'error': 'No meals in selected week range'}
+            return {"error": "No meals in selected week range"}
 
         # Cuisine-level summary
-        cuisine_summary = week_df.groupby('cuisine_cat').agg({
-            'glucose_excursion': ['mean', 'std', 'count'],
-            'egl': 'mean', 
-            'cgm_pre': 'mean', 
-            'cgm_post': 'mean'
-        }).reset_index()
-        cuisine_summary.columns = ['cuisine_cat', 'mean_excursion', 'sd_excursion', 
-                                   'n_meals', 'mean_egl', 'mean_cgm_pre', 'mean_cgm_post']
+        cuisine_summary = (
+            week_df.groupby("cuisine_cat")
+            .agg(
+                {
+                    "glucose_excursion": ["mean", "std", "count"],
+                    "egl": "mean",
+                    "cgm_pre": "mean",
+                    "cgm_post": "mean",
+                }
+            )
+            .reset_index()
+        )
+        cuisine_summary.columns = [
+            "cuisine_cat",
+            "mean_excursion",
+            "sd_excursion",
+            "n_meals",
+            "mean_egl",
+            "mean_cgm_pre",
+            "mean_cgm_post",
+        ]
 
         # Dish-level summary (minimum 3 observations)
-        dish_col = 'dish_selected' if 'dish_selected' in week_df.columns else 'dish'
-        dish_summary = week_df.groupby(['cuisine_cat', dish_col]).agg({
-            'glucose_excursion': ['mean', 'std', 'count'], 
-            'egl': 'mean'
-        }).reset_index()
-        dish_summary.columns = ['cuisine_cat', 'dish', 'mean_excursion', 
-                                'sd_excursion', 'n_meals', 'mean_egl']
-        dish_summary = dish_summary[dish_summary['n_meals'] >= 3].sort_values('mean_excursion')
+        dish_col = "dish_selected" if "dish_selected" in week_df.columns else "dish"
+        dish_summary = (
+            week_df.groupby(["cuisine_cat", dish_col])
+            .agg({"glucose_excursion": ["mean", "std", "count"], "egl": "mean"})
+            .reset_index()
+        )
+        dish_summary.columns = [
+            "cuisine_cat",
+            "dish",
+            "mean_excursion",
+            "sd_excursion",
+            "n_meals",
+            "mean_egl",
+        ]
+        dish_summary = dish_summary[dish_summary["n_meals"] >= 3].sort_values(
+            "mean_excursion"
+        )
 
         figs = {}
-        cuisine_labels = {1: 'Filipino', 2: 'Indian', 3: 'Vietnamese', 4: 'Latinx'}
-        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+        cuisine_labels = {1: "Filipino", 2: "Indian", 3: "Vietnamese", 4: "Latinx"}
+        colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"]
 
         # Plot 1: Mean excursion by cuisine
         fig, ax = plt.subplots(figsize=(10, 6))
-        cuisine_summary['cuisine_label'] = cuisine_summary['cuisine_cat'].map(cuisine_labels)
-        ax.bar(cuisine_summary['cuisine_label'], cuisine_summary['mean_excursion'],
-               yerr=cuisine_summary['sd_excursion']/np.sqrt(cuisine_summary['n_meals']),
-               capsize=5, color=colors)
-        ax.set_title(f'Mean Glucose Excursion by Cuisine - Week of {week_start.strftime("%Y-%m-%d")}')
-        ax.set_ylabel('Glucose Excursion (mg/dL)')
+        cuisine_summary["cuisine_label"] = cuisine_summary["cuisine_cat"].map(
+            cuisine_labels
+        )
+        ax.bar(
+            cuisine_summary["cuisine_label"],
+            cuisine_summary["mean_excursion"],
+            yerr=cuisine_summary["sd_excursion"] / np.sqrt(cuisine_summary["n_meals"]),
+            capsize=5,
+            color=colors,
+        )
+        ax.set_title(
+            f'Mean Glucose Excursion by Cuisine - Week of {week_start.strftime("%Y-%m-%d")}'
+        )
+        ax.set_ylabel("Glucose Excursion (mg/dL)")
         plt.tight_layout()
-        figs['cuisine_excursion'] = fig
-        plt.savefig(f"{output_dir}/pb1_cuisine_excursion.png", dpi=150, bbox_inches='tight')
+        figs["cuisine_excursion"] = fig
+        plt.savefig(
+            f"{output_dir}/pb1_cuisine_excursion.png", dpi=150, bbox_inches="tight"
+        )
         plt.close()
 
         # Plot 2: eGL vs observed
         fig, ax = plt.subplots(figsize=(10, 6))
         for cuisine, color in zip([1, 2, 3, 4], colors):
-            subset = week_df[week_df['cuisine_cat'] == cuisine]
-            ax.scatter(subset['egl'], subset['glucose_excursion'], alpha=0.6, 
-                      label=cuisine_labels.get(cuisine), color=color)
-        valid = week_df.dropna(subset=['egl', 'glucose_excursion'])
+            subset = week_df[week_df["cuisine_cat"] == cuisine]
+            ax.scatter(
+                subset["egl"],
+                subset["glucose_excursion"],
+                alpha=0.6,
+                label=cuisine_labels.get(cuisine),
+                color=color,
+            )
+        valid = week_df.dropna(subset=["egl", "glucose_excursion"])
         if len(valid) > 10:
-            z = np.polyfit(valid['egl'], valid['glucose_excursion'], 1)
+            z = np.polyfit(valid["egl"], valid["glucose_excursion"], 1)
             p = np.poly1d(z)
-            ax.plot(valid['egl'].sort_values(), p(valid['egl'].sort_values()), "r--", alpha=0.8)
-        ax.set_title('eGL vs. Observed Glucose Excursion')
-        ax.set_xlabel('Estimated Glycemic Load')
-        ax.set_ylabel('Glucose Excursion (mg/dL)')
+            ax.plot(
+                valid["egl"].sort_values(),
+                p(valid["egl"].sort_values()),
+                "r--",
+                alpha=0.8,
+            )
+        ax.set_title("eGL vs. Observed Glucose Excursion")
+        ax.set_xlabel("Estimated Glycemic Load")
+        ax.set_ylabel("Glucose Excursion (mg/dL)")
         ax.legend()
         plt.tight_layout()
-        figs['egl_vs_excursion'] = fig
-        plt.savefig(f"{output_dir}/pb1_egl_vs_excursion.png", dpi=150, bbox_inches='tight')
+        figs["egl_vs_excursion"] = fig
+        plt.savefig(
+            f"{output_dir}/pb1_egl_vs_excursion.png", dpi=150, bbox_inches="tight"
+        )
         plt.close()
 
         return {
-            'cuisine_summary': cuisine_summary, 
-            'dish_summary': dish_summary,
-            'top_performers': dish_summary.head(10), 
-            'figures': figs,
-            'total_meals': len(week_df), 
-            'total_participants': week_df['participant_id'].nunique()
+            "cuisine_summary": cuisine_summary,
+            "dish_summary": dish_summary,
+            "top_performers": dish_summary.head(10),
+            "figures": figs,
+            "total_meals": len(week_df),
+            "total_participants": week_df["participant_id"].nunique(),
         }
+
+
+# ==============================================================================
+# P1: Meal Log Enrichment
+# ==============================================================================
+
+CUISINE_KEYS = {1: "filipino", 2: "indian", 3: "vietnamese", 4: "latinx"}
+
+
+def _to_bool(value) -> bool:
+    """Interpret CSV truthy strings ('True'/'1'/'yes') as booleans."""
+    return str(value).strip().lower() in {"true", "1", "yes"}
+
+
+def enrich_meal_logs(df: pd.DataFrame, engine: "GlycemicLoadEngine") -> pd.DataFrame:
+    """Attach estimated glycemic load (eGL) and observed excursion to each meal."""
+    df = df.copy()
+
+    def _row_metrics(row: pd.Series) -> pd.Series:
+        meal = MealLog(
+            participant_id=row["participant_id"],
+            log_date=pd.to_datetime(row["meal_log_date"]),
+            meal_occasion=row.get("meal_occasion", ""),
+            cuisine=CUISINE_KEYS.get(int(row["cuisine_cat"]), ""),
+            dish=row.get("dish_selected", ""),
+            portion_size=(
+                str(int(row["portion_size"]))
+                if pd.notna(row.get("portion_size"))
+                else "2"
+            ),
+            protein_added=_to_bool(row.get("protein_added")),
+            fiber_added=_to_bool(row.get("fiber_added")),
+            manual_carbs=(
+                row["carbs_manual"] if pd.notna(row.get("carbs_manual")) else None
+            ),
+            cgm_pre=row["cgm_pre"] if pd.notna(row.get("cgm_pre")) else None,
+            cgm_post=row["cgm_post"] if pd.notna(row.get("cgm_post")) else None,
+        )
+        computed = engine.calculate_egl(meal)
+        return pd.Series(
+            {"egl": computed.egl, "glucose_excursion": computed.glucose_excursion}
+        )
+
+    df[["egl", "glucose_excursion"]] = df.apply(_row_metrics, axis=1)
+    return df
 
 
 # ==============================================================================
 # MAIN
 # ==============================================================================
 
+
 def main():
-    """Demo: Process synthetic CGM data and generate weekly report."""
+    """Demo: process synthetic CGM data and generate a glycemic report."""
     logger.info("Playbook 1: CGM & Cultural Meal Tracker")
     logger.info("Loading synthetic data...")
 
-    # Load synthetic data
-    cgm_df = pd.read_csv('data/sample_cgm_dexcom.csv')
-    meals_df = pd.read_csv('data/sample_meal_logs.csv')
+    base_dir = Path(__file__).resolve().parent.parent
+    data_dir = base_dir / "data"
+    output_dir = base_dir / "docs" / "screenshots"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Process CGM data
+    # Process CGM data through the full device-agnostic pipeline
     processor = UnifiedCGMProcessor()
-    # For demo, we'll use the raw data directly (in production, use processor.process())
+    cgm_df = processor.process(
+        str(data_dir / "sample_cgm_dexcom.csv"), device_type="dexcom_g7"
+    )
     metrics = processor.compute_metrics(cgm_df)
-    logger.info(f"CGM Metrics: {json.dumps(metrics, indent=2)}")
+    logger.info(f"CGM metrics: {json.dumps(metrics, indent=2)}")
+
+    # Load meal logs and enrich with estimated glycemic load + observed excursion
+    engine = GlycemicLoadEngine()
+    meals_df = pd.read_csv(data_dir / "sample_meal_logs.csv")
+    meals_df = enrich_meal_logs(meals_df, engine)
 
     # Validate meal logs
     validator = DataQualityValidator()
     issues = validator.validate_batch(meals_df)
     if len(issues) > 0:
         logger.warning(f"Found {len(issues)} data quality issues")
-        print(issues.head())
 
-    # Generate weekly report
-    engine = GlycemicLoadEngine()
+    # Generate a report across the full observed period
     reporter = WeeklyReportGenerator(engine)
-    week_start = datetime(2026, 1, 1)
-    week_end = datetime(2026, 1, 7)
+    meals_df["meal_log_date"] = pd.to_datetime(meals_df["meal_log_date"])
+    period_start = meals_df["meal_log_date"].min()
+    period_end = meals_df["meal_log_date"].max()
 
-    report = reporter.generate(meals_df, week_start, week_end, output_dir='docs/screenshots')
-    logger.info(f"Report generated: {report['total_meals']} meals, {report['total_participants']} participants")
+    report = reporter.generate(
+        meals_df, period_start, period_end, output_dir=str(output_dir)
+    )
+    if "error" in report:
+        logger.error(f"Report generation failed: {report['error']}")
+        return report
 
+    logger.info(
+        f"Report generated: {report['total_meals']} meals, "
+        f"{report['total_participants']} participants"
+    )
     return report
 
 
