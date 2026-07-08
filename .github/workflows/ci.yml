@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'claude/**' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   test-python:
@@ -22,7 +23,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
@@ -53,17 +54,25 @@ jobs:
     - name: Set up R
       uses: r-lib/actions/setup-r@v2
       with:
-        r-version: '4.3'
+        r-version: '4.4'
+        use-public-rspm: true
 
     - name: Install R dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
+        # Only the packages r/tests/test_cgm_processor.R actually loads
+        # (via src/cgm_processor.R): dplyr, tidyr, lubridate, zoo, testthat.
+        # Avoid pulling in tidyverse/lme4/digest here — the test suite never
+        # sources the playbook scripts that use them, and including them
+        # drags in Suggests (car -> lme4 -> gamm4, which needs R >= 4.4)
+        # that can deadlock the dependency solver on older R.
         packages: |
-          tidyverse
-          lme4
-          testthat
-          digest
-          zoo
+          any::dplyr
+          any::tidyr
+          any::lubridate
+          any::zoo
+          any::testthat
+        needs: check
 
     - name: Run R tests
       run: |
@@ -82,7 +91,7 @@ jobs:
 
     - name: Install linting tools
       run: |
-        pip install flake8 black isort
+        pip install flake8==7.3.0 black==26.5.1 isort==8.0.1
 
     - name: Check formatting with black
       run: black --check python/
